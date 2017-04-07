@@ -5,11 +5,11 @@ using UnityStandardAssets.Cameras;
 
 public class PlayerController : NetworkBehaviour {
 
-    protected Animator animator;
-    protected Rigidbody thisRigidbody;
+    private Animator animator;
+    private Rigidbody thisRigidbody;
 
     [SyncVar]
-    protected float currentSpeed;
+    private float currentSpeed;
     public float walkSpeed = 2;
     public float sprintSpeed = 5;
     public float playerRotateSpeed = 1f;
@@ -23,17 +23,17 @@ public class PlayerController : NetworkBehaviour {
     private float angle;          // угол поворот при перемещении
     private float cameraPitch;
 
-    public Vector3 spineOffsetRotation;
+    [SerializeField]
+    private Vector3 spineOffsetRotation;
     private Transform spine;
 
     [SyncVar]
-    public bool isGrounded;
+    public bool isGrounded;  //стоит ли персонаж на поверхности
     [SyncVar]
     protected bool isAiming;
     [SyncVar]
-    private bool inAction;
+    private bool inAction; //находится ли персонаж в боевом состоянии
     
-
     private Text debugText;
 
     private FreeLookCam freeLookCam;
@@ -46,57 +46,37 @@ public class PlayerController : NetworkBehaviour {
 
     Quaternion rotateTo; // rotate player to movement direction
 
-    // Use this for initialization
-    protected virtual void Start ()
+
+    private void Start ()
     {
-        animator  = GetComponent<Animator>();
+        animator      = GetComponent<Animator>();
         thisRigidbody = GetComponent<Rigidbody>();
         freeLookCam = GameObject.Find("FreeLookCameraRig").GetComponent<FreeLookCam>();
         cameraPivot = GameObject.Find("PivotCamera").GetComponent<Transform>();
+        debugText   = GameObject.FindGameObjectWithTag("DebugText").GetComponent<Text>();
         spine = transform.Find("root/pelvis/spine_01");
 
-        debugText = GameObject.FindGameObjectWithTag("DebugText").GetComponent<Text>();
         transform.name = "Player " + this.netId;
         freeLookCam.m_LockCursor = true;
     }
 	
-	// Update is called once per frame
-	protected virtual void Update ()
+	private void Update ()
     {
-        if (currentSpeed == sprintSpeed)
-            animator.SetFloat("Velocity", 1f, 0.3f, Time.deltaTime);
-        else if (currentSpeed == walkSpeed)
-            animator.SetFloat("Velocity", 0.5f, 0.3f, Time.deltaTime);
-        else
-            animator.SetFloat("Velocity", 0f, 0.3f, Time.deltaTime);
-
-        animator.SetFloat("HorizontalAxis", horizontalAxis);
-        animator.SetFloat("VerticalAxis", verticalAxis);
-        animator.SetBool("IsGrounded", isGrounded);
-
-        if(inAction)
-        {
-            animator.SetBool("IsAiming", true);
-        }
-        else
-        {
-            animator.SetBool("IsAiming", isAiming);
-        }
-        
+        UpdateAnimationStates();
 
         if (!isLocalPlayer)
             return;
 
         CheckIsGrounded();
+        SetAimFOV(isAiming);
 
-        if (Input.GetKeyDown(KeyCode.Alpha4))
+        CmdSetIsAiming(Input.GetKey(KeyCode.Mouse1)); // правая кнопка мыши
+
+        if (Input.GetKeyDown(KeyCode.Alpha4)) 
             ChangeCameraSide();
 
-        CmdSetIsAiming(Input.GetKey(KeyCode.Mouse1));
-
-        if(Input.GetKey(KeyCode.Mouse0))
+        if(Input.GetKey(KeyCode.Mouse0)) //левая кнопка мыши
         {
-
             Ray ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
             RaycastHit lookPointHit;
             Vector3 HitPosition = new Vector3();
@@ -116,9 +96,7 @@ public class PlayerController : NetworkBehaviour {
             CmdSetMovementAxis(verticalAxis, horizontalAxis);
             rotateTo = Quaternion.Euler(0, Camera.main.transform.eulerAngles.y, 0);
             transform.rotation = Quaternion.Lerp(transform.rotation, rotateTo, playerRotateSpeed * Time.deltaTime);
-            
         }
-        SetAimFOV(isAiming);
 
         if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
         {
@@ -126,33 +104,164 @@ public class PlayerController : NetworkBehaviour {
             isGrounded = false;
         }
 
-
-        if (isServer) /// Логика на стороне хоста ///
-        {
-
-        }
-        else /// Логика на стороне клиента ///в
+        if(!isServer)
         {
             CmdSetCurrentSpeed(currentSpeed);
             CmdSetIsGrounded(isGrounded);
         }
 
     }
-    
 
-    protected virtual void FixedUpdate()
+    private void FixedUpdate()
     {
-
         if (!isLocalPlayer)
             return;
 
+        MovePlayer();
+    }
+
+    private void LateUpdate()
+    {
+        if (!isLocalPlayer)
+            return;
+        if (isAiming || inAction)
+            SpineRotation();
+    }
+
+    [Command(channel = 0)]
+    private void CmdDoFire(bool isFiring, Vector3 HitPosition)
+    {
+        if(isFiring)
+        {
+            Weapon weapon = GetComponentInChildren<Weapon>();
+            weapon.CmdFire(HitPosition);
+            inAction = true;
+        }
+
+        CmdSetAnimatorValueBool("Fire", isFiring);
+    }
+
+    /// <summary>
+    /// Синхронизация Axis значений
+    /// </summary>
+    /// <param name="verticalAxis">W,S клавиши</param>
+    /// <param name="horizontalAxis">A,D клавиши</param>
+    [Command(channel = 1)]
+    private void CmdSetMovementAxis(float verticalAxis, float horizontalAxis)
+    {
+        this.verticalAxis = verticalAxis;
+        this.horizontalAxis = horizontalAxis;
+    }
+    [Command(channel = 1)]
+    private void CmdSetInAction(bool inAction)
+    {
+        this.inAction = inAction;
+    }
+    [Command(channel = 1)]
+    private void CmdSetCurrentSpeed(float speed)
+    {
+        currentSpeed = speed;
+    }
+    [Command(channel = 0)]
+    private void CmdSetIsGrounded(bool isGrounded)
+    {
+        this.isGrounded = isGrounded;
+    }
+    [Command(channel = 0)]
+    private void CmdSetIsAiming(bool isAiming)
+    {
+        this.isAiming = isAiming;
+    }
+
+    //изменение положения камеры относительно персонажа (справа/слево)
+    private void ChangeCameraSide()
+    {
+        if (cameraRL)
+            cameraPivot.transform.localPosition = new Vector3(0.5f, 1.5f, 0);
+        else
+            cameraPivot.transform.localPosition = new Vector3(-0.5f, 1.5f, 0);
+
+        cameraRL = !cameraRL;
+    }
+
+    //проверка бежит ли персонаж
+    private void CheckPlayerSpeed()
+    {
+        if (Input.GetKey(KeyCode.LeftShift) && isGrounded)
+        {
+            CmdSetInAction(false);
+            currentSpeed = sprintSpeed;
+        }
+        else
+            currentSpeed = walkSpeed;
+    }
+
+    //Изменение Field Of View при прицеливании
+    private void SetAimFOV(bool isAiming)
+    {
+        if (isAiming)
+        {
+            Camera.main.fieldOfView = Mathf.Lerp(Camera.main.fieldOfView, 50f, Time.deltaTime * 10f);
+        }
+        else
+        {
+            Camera.main.fieldOfView = Mathf.Lerp(Camera.main.fieldOfView, 70f, Time.deltaTime * 10f);
+        }
+    }
+
+    //вращение спины при прицеливании
+    private void SpineRotation()
+    {
+        Vector3 eulerAngleOffset = Vector3.zero;
+        eulerAngleOffset = new Vector3(spineOffsetRotation.x, spineOffsetRotation.y, spineOffsetRotation.z);
+
+        Ray ray = new Ray(cameraPivot.transform.position, cameraPivot.transform.forward);
+        Debug.DrawRay(cameraPivot.transform.position, cameraPivot.transform.forward, Color.green);
+        Vector3 lookPos = ray.GetPoint(50f);
+
+        Quaternion.Slerp(spine.transform.rotation, Quaternion.LookRotation(lookPos), 20f);
+        spine.LookAt(lookPos);
+        spine.Rotate(eulerAngleOffset);
+    }
+
+    //проверка, стоит ли персонаж на поверхности
+    private bool CheckIsGrounded()
+    {
+        Debug.DrawRay(transform.position + new Vector3(0, 0.1f, 0), Vector3.down * 0.3f, Color.green);
+        return isGrounded = Physics.Raycast(transform.position + new Vector3(0, 0.1f, 0), Vector3.down * 0.3f, 0.15f);
+    }
+
+    private void UpdateAnimationStates()
+    {
+        if (currentSpeed == sprintSpeed)
+            animator.SetFloat("Velocity", 1f, 0.3f, Time.deltaTime);
+        else if (currentSpeed == walkSpeed)
+            animator.SetFloat("Velocity", 0.5f, 0.3f, Time.deltaTime);
+        else
+            animator.SetFloat("Velocity", 0f, 0.3f, Time.deltaTime);
+
+        animator.SetFloat("HorizontalAxis", horizontalAxis);
+        animator.SetFloat("VerticalAxis", verticalAxis);
+        animator.SetBool("IsGrounded", isGrounded);
+
+        if (inAction)
+        {
+            animator.SetBool("IsAiming", true);
+        }
+        else
+        {
+            animator.SetBool("IsAiming", isAiming);
+        }
+    }
+
+    private void MovePlayer()
+    {
         verticalAxis = Input.GetAxis("Vertical");
         horizontalAxis = Input.GetAxis("Horizontal");
         angle = Mathf.Atan2(horizontalAxis, verticalAxis) * Mathf.Rad2Deg;
 
         if (horizontalAxis != 0 || verticalAxis != 0)
         {
-            
             CheckPlayerSpeed();
 
             cameraForward = Camera.main.transform.TransformDirection(Vector3.forward);
@@ -173,7 +282,6 @@ public class PlayerController : NetworkBehaviour {
 
             thisRigidbody.velocity = moveDirection;
 
-
             if (!isAiming && !inAction)
             {
                 rotateTo = Quaternion.Euler(0, Camera.main.transform.eulerAngles.y + angle, 0);
@@ -183,126 +291,4 @@ public class PlayerController : NetworkBehaviour {
         else
             currentSpeed = 0;
     }
-
-    void LateUpdate()
-    {
-        if (!isLocalPlayer)
-            return;
-        if (isAiming || inAction)
-            SpineRotation();
-    }
-
-    [Command(channel = 0)]
-    protected void CmdSetIsAiming(bool isAiming)
-    {
-        this.isAiming = isAiming;
-    }
-
-    [Command(channel = 0)]
-    protected void CmdDoFire(bool isFiring, Vector3 HitPosition)
-    {
-        if(isFiring)
-        {
-            Weapon weapon = GetComponentInChildren<Weapon>();
-            weapon.CmdFire(HitPosition);
-            inAction = true;
-        }
-
-        CmdSetAnimatorValueBool("Fire", isFiring);
-    }
-
-    [Command(channel = 0)]
-    protected void CmdSetIsGrounded(bool isGrounded)
-    {
-        this.isGrounded = isGrounded;
-    }
-
-    [Command(channel = 1)]
-    protected void CmdSetAnimatorValueBool(string id, bool value)
-    {
-        animator.SetBool(id, value);
-        RpcSetAnimatorValueBool(id, value);
-    } 
-    [ClientRpc(channel = 1)]
-    protected void RpcSetAnimatorValueBool(string id, bool value)
-    {
-        animator.SetBool(id, value);
-    }
-
-    [Command(channel = 1)]
-    protected void CmdSetCurrentSpeed(float speed)
-    {
-        currentSpeed = speed;
-    }
-
-    /// <summary>
-    /// Синхронизация Axis значений
-    /// </summary>
-    /// <param name="verticalAxis">W,S клавиши</param>
-    /// <param name="horizontalAxis">A,D клавиши</param>
-    [Command(channel = 1)]
-    protected void CmdSetMovementAxis(float verticalAxis, float horizontalAxis)
-    {
-        this.verticalAxis = verticalAxis;
-        this.horizontalAxis = horizontalAxis;
-    }
-
-    [Command(channel = 1)]
-    private void CmdSetInAction(bool inAction)
-    {
-        this.inAction = inAction;
-    }
-
-    void ChangeCameraSide()
-    {
-        if (cameraRL)
-            cameraPivot.transform.localPosition = new Vector3(0.5f, 1.5f, 0);
-        else
-            cameraPivot.transform.localPosition = new Vector3(-0.5f, 1.5f, 0);
-
-        cameraRL = !cameraRL;
-    }
-
-    void CheckPlayerSpeed()
-    {
-        if (Input.GetKey(KeyCode.LeftShift) && isGrounded)
-        {
-            CmdSetInAction(false);
-            currentSpeed = sprintSpeed;
-        }
-        else
-            currentSpeed = walkSpeed;
-    }
-    void SetAimFOV(bool isAiming)
-    {
-        if (isAiming)
-        {
-            Camera.main.fieldOfView = Mathf.Lerp(Camera.main.fieldOfView, 50f, Time.deltaTime * 10f);
-        }
-        else
-        {
-            Camera.main.fieldOfView = Mathf.Lerp(Camera.main.fieldOfView, 70f, Time.deltaTime * 10f);
-        }
-    }
-
-    void SpineRotation()
-    {
-        Vector3 eulerAngleOffset = Vector3.zero;
-        eulerAngleOffset = new Vector3(spineOffsetRotation.x, spineOffsetRotation.y, spineOffsetRotation.z);
-
-        Ray ray = new Ray(cameraPivot.transform.position, cameraPivot.transform.forward);
-        Debug.DrawRay(cameraPivot.transform.position, cameraPivot.transform.forward, Color.green);
-        Vector3 lookPos = ray.GetPoint(50f);
-
-        Quaternion.Slerp(spine.transform.rotation, Quaternion.LookRotation(lookPos), 20f);
-        spine.LookAt(lookPos);
-        spine.Rotate(eulerAngleOffset);
-    }
-
-    protected bool CheckIsGrounded()
-    {
-        Debug.DrawRay(transform.position + new Vector3(0, 0.1f, 0), Vector3.down * 0.3f, Color.green);
-        return isGrounded = Physics.Raycast(transform.position + new Vector3(0, 0.1f, 0), Vector3.down * 0.3f, 0.15f);
-    }
-
 }
