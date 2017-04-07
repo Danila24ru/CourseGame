@@ -21,11 +21,11 @@ public class PlayerInventory : NetworkBehaviour {
         if (!isLocalPlayer)
             return;
 
-        if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetAxisRaw("Mouse ScrollWheel") != 0)
+        if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetAxisRaw("Mouse ScrollWheel") > 0)
         {
             CmdChangeCurrentWeaponTo(secondWeapon.name);
         }
-        if (Input.GetKeyDown(KeyCode.Alpha2))
+        if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetAxisRaw("Mouse ScrollWheel") < 0)
         {
             CmdChangeCurrentWeaponTo(firstWeapon.name);
         }

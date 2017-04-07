@@ -4,6 +4,7 @@ public interface IDamageble {
 
     [Command]
     void CmdTakeDamage(float damage);
-    void Die();
+    [Command]
+    void CmdDie();
     bool IsAlive();
 }

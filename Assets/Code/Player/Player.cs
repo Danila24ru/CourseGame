@@ -13,6 +13,10 @@ public class Player : NetworkBehaviour, IDamageble {
     public float rateOfRegeneration;
     public float healthToRegenerate;
 
+    public GameObject currentWeapon;
+    public GameObject primaryWeapon;
+    public GameObject secondWeapon;
+
     VignetteAndChromaticAberration vignette;
 
     void Start()
@@ -41,10 +45,10 @@ public class Player : NetworkBehaviour, IDamageble {
                 StartCoroutine(startHealthRegeneration());
         }
         if (!IsAlive())
-            Die();
+            CmdDie();
     }
 
-    public void Die()
+    public void CmdDie()
     {
         Transform startPos = NetworkManager.singleton.GetStartPosition();
         var newPlayer = (GameObject)Instantiate(NetworkManager.singleton.playerPrefab, startPos.position, startPos.rotation);

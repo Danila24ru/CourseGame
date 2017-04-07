@@ -16,6 +16,14 @@ public class Weapon : NetworkBehaviour {
 
     public RaycastHit hit;
     public GameObject hitPointEffect;
+    public GameObject hitBloodEffect;
+
+    public float verticalSpread;
+    public float horizontalSpread;
+    public float minDistance = 15f;
+    public float midDistance = 70f;
+    public float longDistance = 80f;
+    
 
     [SerializeField]
     private WeaponData weaponData;
@@ -66,8 +74,15 @@ public class Weapon : NetworkBehaviour {
     void InstantFire(Vector3 directionPoint)
     {
         Vector3 shootDirection = directionPoint - muzzleFlash.position;
-        shootDirection.x += Random.Range(-0.05f, 0.05f);
-        shootDirection.y += Random.Range(-0.05f, 0.05f);
+        if (shootDirection.magnitude < minDistance)
+            horizontalSpread = verticalSpread = 0.1f;
+        else if (shootDirection.magnitude >= midDistance && shootDirection.magnitude < longDistance)
+            horizontalSpread = verticalSpread = 0.4f;
+        else
+            horizontalSpread = verticalSpread = 1.2f;
+
+        shootDirection.x += Random.Range(-horizontalSpread, horizontalSpread);
+        shootDirection.y += Random.Range(-verticalSpread, verticalSpread);
 
         Debug.DrawRay(muzzleFlash.position, shootDirection * 20f, Color.green, 10f);
         if (Physics.Raycast(muzzleFlash.position, shootDirection, out hit, weaponData.range))
@@ -77,9 +92,13 @@ public class Weapon : NetworkBehaviour {
             if(hit.transform.gameObject.GetComponent<IDamageble>() != null)
             {
                 IDamageble damagedObject = hit.transform.gameObject.GetComponent<IDamageble>();
-                damagedObject.CmdTakeDamage(weaponData.damage);
-            }else
-            if(hitPointEffect != null)
+                if(damagedObject.IsAlive())
+                    damagedObject.CmdTakeDamage(weaponData.damage);
+                GameObject hitEffectBlood = Instantiate(hitBloodEffect, hit.point, Quaternion.FromToRotation(Vector3.up, hit.normal));
+                Destroy(hitEffectBlood, 20f);
+                RpcSpawnBlood(hit.point, Quaternion.FromToRotation(Vector3.up, hit.normal));
+            }
+            else
             {
                 GameObject hitEffect = Instantiate(hitPointEffect, hit.point, Quaternion.FromToRotation(Vector3.up, hit.normal));
                 hitEffect.transform.position += new Vector3(0, 0.02f, 0);
@@ -102,6 +121,12 @@ public class Weapon : NetworkBehaviour {
         GameObject hitEffect = Instantiate(hitPointEffect, pos, rot);
         hitEffect.transform.position += new Vector3(0, 0.02f, 0);
         Destroy(hitEffect, 15f);
+    }
+    [ClientRpc(channel = 1)]
+    void RpcSpawnBlood(Vector3 pos, Quaternion rot)
+    {
+        GameObject hitEffectBlood = Instantiate(hitBloodEffect, pos, rot);
+        Destroy(hitEffectBlood, 3f);
     }
 
 }

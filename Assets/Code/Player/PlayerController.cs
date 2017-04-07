@@ -140,6 +140,17 @@ public class PlayerController : NetworkBehaviour {
 
         CmdSetAnimatorValueBool("Fire", isFiring);
     }
+    [Command(channel = 1)]
+    protected void CmdSetAnimatorValueBool(string id, bool value)
+    {
+        animator.SetBool(id, value);
+        RpcSetAnimatorValueBool(id, value);
+    } 
+    [ClientRpc(channel = 1)]
+    protected void RpcSetAnimatorValueBool(string id, bool value)
+    {
+        animator.SetBool(id, value);
+    }
 
     /// <summary>
     /// Синхронизация Axis значений
