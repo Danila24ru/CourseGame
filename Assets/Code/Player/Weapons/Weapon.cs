@@ -24,12 +24,15 @@ public class Weapon : NetworkBehaviour {
     public float midDistance = 70f;
     public float longDistance = 80f;
     
+    
 
     [SerializeField]
     private WeaponData weaponData;
 
     [SerializeField]
     private AudioSource audioSource;
+    public AudioClip shootSound;
+    public AudioClip reloadSound;
 
     private float nextFireTime;
 
@@ -70,7 +73,8 @@ public class Weapon : NetworkBehaviour {
                 }
             }
             weaponData.currentClipAmmo -= 1;
-            RpcPlayShootSound();
+            //RpcPlayShootSound();
+            SoundUtilities.RpcPlaySound(audioSource, shootSound, 1f, 0.2f);
         }
     }
 
@@ -115,6 +119,7 @@ public class Weapon : NetworkBehaviour {
     [Command(channel = 0)]
     public void CmdReload()
     {
+        SoundUtilities.RpcPlaySound(audioSource, reloadSound, 1f, 0f);
         if (weaponData.currentAmmo > 0)
         {
             if (weaponData.currentAmmo >= weaponData.MaxClipAmmo)
@@ -185,7 +190,9 @@ public struct WeaponData
 {
     public string name;
 
+    [SyncVar]
     public int currentClipAmmo, currentAmmo;
+    [SyncVar]
     public int MaxClipAmmo, MaxAmmo;
     public int spreadCount;
 

@@ -86,11 +86,12 @@ public class PlayerController : NetworkBehaviour {
             }
             CmdDoFire(true, HitPosition);
         }
-        else
+
+        if(Input.GetKeyUp(KeyCode.Mouse0))
         {
             CmdDoFire(false, Vector3.forward);
         }
-
+        
         if(Input.GetKeyDown(KeyCode.R))
         {
             Weapon weapon = GetComponentInChildren<Weapon>();
@@ -109,11 +110,7 @@ public class PlayerController : NetworkBehaviour {
             transform.rotation = Quaternion.Lerp(transform.rotation, rotateTo, playerRotateSpeed * Time.deltaTime);
         }
 
-        if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
-        {
-            thisRigidbody.velocity = new Vector3(0, jumpHeight, 0);
-            isGrounded = false;
-        }
+        
 
         if(!isServer)
         {
@@ -129,6 +126,15 @@ public class PlayerController : NetworkBehaviour {
             return;
 
         MovePlayer();
+
+        if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
+        {
+            //thisRigidbody.velocity = new Vector3(0, jumpHeight, 0);
+            thisRigidbody.AddForce(new Vector3(0, jumpHeight, 0), ForceMode.Impulse);
+            //thisRigidbody.MovePosition(transform.position + new Vector3(0, jumpHeight, 0));
+            isGrounded = false;
+            
+        }
     }
 
     private void LateUpdate()
@@ -258,7 +264,7 @@ public class PlayerController : NetworkBehaviour {
         if (currentSpeed == sprintSpeed)
             animator.SetFloat("Velocity", 1f, 0.3f, Time.deltaTime);
         else if (currentSpeed == walkSpeed)
-            animator.SetFloat("Velocity", 0.5f, 0.3f, Time.deltaTime);
+            animator.SetFloat("Velocity", 0.5f, 0.1f, Time.deltaTime);
         else
             animator.SetFloat("Velocity", 0f, 0.3f, Time.deltaTime);
 
@@ -293,16 +299,11 @@ public class PlayerController : NetworkBehaviour {
             cameraRight = new Vector3(cameraForward.z, 0, -cameraForward.x);
 
             moveDirection = Vector3.zero;
-            moveDirection = (horizontalAxis * cameraRight + verticalAxis * cameraForward) * currentSpeed;
+            moveDirection = (horizontalAxis * cameraRight + verticalAxis * cameraForward);
 
-            if (currentSpeed == walkSpeed)
-                moveDirection = Vector3.ClampMagnitude(moveDirection, walkSpeed);
-            if (currentSpeed == sprintSpeed)
-                moveDirection = Vector3.ClampMagnitude(moveDirection, sprintSpeed);
+            moveDirection = moveDirection.normalized * currentSpeed * Time.deltaTime;
 
-            moveDirection.y = thisRigidbody.velocity.y;
-
-            thisRigidbody.velocity = moveDirection;
+            thisRigidbody.MovePosition(transform.position + moveDirection);
 
             if (!isAiming && !inAction)
             {
