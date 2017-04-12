@@ -54,12 +54,14 @@ public class Weapon : NetworkBehaviour {
     [Command]
     public void CmdFire(Vector3 HitPosition)
     {
-        if(nextFireTime < Time.time)
+        if(nextFireTime < Time.time && weaponData.currentClipAmmo > 0)
         {
             nextFireTime = Time.time + weaponData.fireRate;
 
             if (weaponData.fireType == EWeaponFireType.Single)
+            {
                 InstantFire(HitPosition);
+            }
             else if (weaponData.fireType == EWeaponFireType.Spread)
             {
                 for (int i = 0; i < weaponData.spreadCount; i++)
@@ -67,6 +69,7 @@ public class Weapon : NetworkBehaviour {
                     InstantFire(HitPosition);
                 }
             }
+            weaponData.currentClipAmmo -= 1;
             RpcPlayShootSound();
         }
     }
@@ -106,6 +109,37 @@ public class Weapon : NetworkBehaviour {
                 RpcSpawnBulletHole(hit.point, Quaternion.FromToRotation(Vector3.up, hit.normal));
             }
             
+        }
+    }
+
+    [Command(channel = 0)]
+    public void CmdReload()
+    {
+        if (weaponData.currentAmmo > 0)
+        {
+            if (weaponData.currentAmmo >= weaponData.MaxClipAmmo)
+            {
+                weaponData.currentAmmo += weaponData.currentClipAmmo - weaponData.MaxClipAmmo;
+                weaponData.currentClipAmmo = weaponData.MaxClipAmmo;
+            }
+            else
+            {
+                if (weaponData.currentClipAmmo == 0)
+                {
+                    weaponData.currentClipAmmo = weaponData.currentAmmo;
+                    weaponData.currentAmmo = 0;
+                }
+                else
+                {
+                    weaponData.currentClipAmmo += weaponData.currentAmmo;
+                    weaponData.currentAmmo = 0;
+                    if (weaponData.currentClipAmmo > weaponData.MaxClipAmmo)
+                    {
+                        weaponData.currentAmmo = weaponData.currentClipAmmo - weaponData.MaxClipAmmo;
+                        weaponData.currentClipAmmo -= weaponData.currentAmmo;
+                    }
+                }
+            }
         }
     }
 

@@ -90,6 +90,17 @@ public class PlayerController : NetworkBehaviour {
         {
             CmdDoFire(false, Vector3.forward);
         }
+
+        if(Input.GetKeyDown(KeyCode.R))
+        {
+            Weapon weapon = GetComponentInChildren<Weapon>();
+            weapon.CmdReload();
+            animator.SetBool("IsReloading", true);
+        }
+        else
+        {
+            animator.SetBool("IsReloading", false);
+        }
         
         if (isAiming || inAction)
         {
