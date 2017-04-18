@@ -10,18 +10,12 @@ public class NetworkUtilities : MonoBehaviour {
     public Text networkStatText;
     bool netStatHide = true;
 
-	// Use this for initialization
-	void Start () {
-
-	}
-	
-	// Update is called once per frame
 	void Update () {
         
         if (networkStatPanel != null && networkStatText != null && netStatHide == true)
         {
             networkStatText.text = string.Format("Last Ping: {0} \n",
-                GameObject.Find("NetworkManager").GetComponent<NetworkManager>().client.GetRTT());
+                NetworkManager.singleton.client.GetRTT());
         }
         if(Input.GetKeyDown(KeyCode.H))
         {

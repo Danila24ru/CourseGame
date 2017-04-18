@@ -17,9 +17,9 @@ public class PlayerController : NetworkBehaviour {
     public float jumpHeight = 4;
 
     [SyncVar]
-    protected float verticalAxis;   // принимает значения от -1 до 1 при нажатии W,S
+    private float verticalAxis;   // принимает значения от -1 до 1 при нажатии W,S
     [SyncVar]
-    protected float horizontalAxis; // принимает значения от -1 до 1 при нажатии A,D
+    private float horizontalAxis; // принимает значения от -1 до 1 при нажатии A,D
     private float angle;          // угол поворот при перемещении
     private float cameraPitch;
 
@@ -30,7 +30,7 @@ public class PlayerController : NetworkBehaviour {
     [SyncVar]
     public bool isGrounded;  //стоит ли персонаж на поверхности
     [SyncVar]
-    protected bool isAiming;
+    private bool isAiming;
     [SyncVar]
     private bool inAction; //находится ли персонаж в боевом состоянии
     
@@ -110,8 +110,6 @@ public class PlayerController : NetworkBehaviour {
             transform.rotation = Quaternion.Lerp(transform.rotation, rotateTo, playerRotateSpeed * Time.deltaTime);
         }
 
-        
-
         if(!isServer)
         {
             CmdSetCurrentSpeed(currentSpeed);
@@ -129,11 +127,8 @@ public class PlayerController : NetworkBehaviour {
 
         if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
         {
-            //thisRigidbody.velocity = new Vector3(0, jumpHeight, 0);
             thisRigidbody.AddForce(new Vector3(0, jumpHeight, 0), ForceMode.Impulse);
-            //thisRigidbody.MovePosition(transform.position + new Vector3(0, jumpHeight, 0));
             isGrounded = false;
-            
         }
     }
 
@@ -143,6 +138,21 @@ public class PlayerController : NetworkBehaviour {
             return;
         if (isAiming || inAction)
             SpineRotation();
+    }
+
+    [Command(channel = 0)]
+    void CmdChangeWeapon(int number)
+    {
+        Player player = GetComponent<Player>();
+        if(number == 1)
+        {
+            player.currentWeapon = player.primaryWeapon;
+        }
+        if(number == 2 || number == -1)
+        {
+            player.currentWeapon = player.secondWeapon;
+        }    
+        
     }
 
     [Command(channel = 0)]

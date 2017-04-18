@@ -1,10 +1,13 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityStandardAssets.ImageEffects;
+
 public class Player : NetworkBehaviour, IDamageble {
+
+    [SyncVar]
+    string Nickname = "Nick";
+    TextMesh nicknameText;
 
     private const float MAX_HEALTH = 100.0f;
 
@@ -22,12 +25,18 @@ public class Player : NetworkBehaviour, IDamageble {
     void Start()
     {
         vignette = Camera.main.gameObject.GetComponent<VignetteAndChromaticAberration>();
+        nicknameText = transform.Find("Nickname").GetComponent<TextMesh>();
+        if (nicknameText != null && isLocalPlayer)
+            nicknameText.transform.gameObject.SetActive(false);
     }
 
     void Update()
     {
+        nicknameText.transform.rotation = Quaternion.LookRotation(nicknameText.transform.position - Camera.main.transform.position);
+
         if (!isLocalPlayer)
             return;
+
         vignette.intensity = 1f - health / MAX_HEALTH;
     }
 
@@ -50,10 +59,7 @@ public class Player : NetworkBehaviour, IDamageble {
 
     public void CmdDie()
     {
-        Transform startPos = NetworkManager.singleton.GetStartPosition();
-        var newPlayer = (GameObject)Instantiate(NetworkManager.singleton.playerPrefab, startPos.position, startPos.rotation);
-        NetworkServer.Destroy(this.gameObject);
-        NetworkServer.ReplacePlayerForConnection(this.connectionToClient, newPlayer, this.playerControllerId);
+        GameNetworkManager.RespawnPlayer(this);
     }
 
     IEnumerator startHealthRegeneration()

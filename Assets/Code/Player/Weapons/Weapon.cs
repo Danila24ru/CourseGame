@@ -73,8 +73,8 @@ public class Weapon : NetworkBehaviour {
                 }
             }
             weaponData.currentClipAmmo -= 1;
-            //RpcPlayShootSound();
-            SoundUtilities.RpcPlaySound(audioSource, shootSound, 1f, 0.2f);
+            RpcPlayShootSound();
+            
         }
     }
 
@@ -119,7 +119,7 @@ public class Weapon : NetworkBehaviour {
     [Command(channel = 0)]
     public void CmdReload()
     {
-        SoundUtilities.RpcPlaySound(audioSource, reloadSound, 1f, 0f);
+        RpcPlayReloadSound();
         if (weaponData.currentAmmo > 0)
         {
             if (weaponData.currentAmmo >= weaponData.MaxClipAmmo)
@@ -148,10 +148,16 @@ public class Weapon : NetworkBehaviour {
         }
     }
 
-    [ClientRpc]
+    [ClientRpc(channel = 1)]
     void RpcPlayShootSound()
     {
-        audioSource.Play();
+        SoundUtilities.PlaySound(audioSource, shootSound, 1f, 0.2f);
+    }
+
+    [ClientRpc(channel = 1)]
+    void RpcPlayReloadSound()
+    {
+        SoundUtilities.PlaySound(audioSource, reloadSound, 1f, 0);
     }
 
     [ClientRpc(channel = 1)]

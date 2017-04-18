@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using UnityEngine.Networking;
+using System.Collections;
 
 public class PlayerInventory : NetworkBehaviour {
 
@@ -9,10 +10,15 @@ public class PlayerInventory : NetworkBehaviour {
 
     private Animator playerAnimator;
 
+    public int inventorySize;
+    public GameObject[] weapons;
+    public GameObject[] grenades;
+
 
 	// Use this for initialization
 	void Start () {
         playerAnimator = GetComponent<Animator>();
+        
 	}
 	
 	// Update is called once per frame
@@ -53,6 +59,11 @@ public class PlayerInventory : NetworkBehaviour {
         playerAnimator.SetInteger("WeaponType", (int)weaponOrigin.GetComponent<Weapon>().weaponAnimType);
         
         RpcSpawnOnClient("WeaponType", (int)weaponOrigin.GetComponent<Weapon>().weaponAnimType);
+    }
+
+    void Equip()
+    {
+
     }
     
     [ClientRpc(channel = 1)]
