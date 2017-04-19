@@ -10,15 +10,21 @@ public class PlayerInventory : NetworkBehaviour {
 
     private Animator playerAnimator;
 
-    public int inventorySize;
-    public GameObject[] weapons;
-    public GameObject[] grenades;
+    private InventoryWindow inventoryWindow;
 
+    public int inventorySize;
+    public GameObject[] grenades;
+    public Weapon[] weapons;
 
 	// Use this for initialization
 	void Start () {
         playerAnimator = GetComponent<Animator>();
         
+        if (isLocalPlayer)
+        {
+            inventoryWindow = GameObject.Find("Canvas").GetComponentInChildren<InventoryWindow>();
+            inventoryWindow.inventory = this;
+        }
 	}
 	
 	// Update is called once per frame
@@ -26,6 +32,8 @@ public class PlayerInventory : NetworkBehaviour {
 
         if (!isLocalPlayer)
             return;
+
+        weapons = GetComponentsInChildren<Weapon>();
 
         if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetAxisRaw("Mouse ScrollWheel") > 0)
         {

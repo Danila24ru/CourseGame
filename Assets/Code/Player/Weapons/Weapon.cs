@@ -25,9 +25,7 @@ public class Weapon : NetworkBehaviour {
     public float longDistance = 80f;
     
     
-
-    [SerializeField]
-    private WeaponData weaponData;
+    public WeaponData weaponData;
 
     [SerializeField]
     private AudioSource audioSource;
@@ -195,6 +193,8 @@ public enum EWeaponFireType
 public struct WeaponData
 {
     public string name;
+    public Sprite icon;
+    public string description;
 
     [SyncVar]
     public int currentClipAmmo, currentAmmo;

@@ -27,11 +27,15 @@ public class Player : NetworkBehaviour, IDamageble {
         vignette = Camera.main.gameObject.GetComponent<VignetteAndChromaticAberration>();
         nicknameText = transform.Find("Nickname").GetComponent<TextMesh>();
         if (nicknameText != null && isLocalPlayer)
+        {
+            CmdSetPlayerName(GameObject.Find("NetworkManager").GetComponent<GameNetworkManager>().PlayerName);
             nicknameText.transform.gameObject.SetActive(false);
+        }
     }
 
     void Update()
     {
+        nicknameText.text = Nickname;
         nicknameText.transform.rotation = Quaternion.LookRotation(nicknameText.transform.position - Camera.main.transform.position);
 
         if (!isLocalPlayer)
@@ -71,5 +75,11 @@ public class Player : NetworkBehaviour, IDamageble {
                 health = MAX_HEALTH;
             yield return new WaitForSeconds(rateOfRegeneration);
         }
+    }
+
+    [Command(channel = 0)]
+    void CmdSetPlayerName(string name)
+    {
+        Nickname = name;
     }
 }

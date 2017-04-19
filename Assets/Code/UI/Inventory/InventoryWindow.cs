@@ -4,11 +4,14 @@ using UnityEngine;
 
 public class InventoryWindow : MonoBehaviour {
 
+    private GameObject inventoryWeaponItem; // ссылка на префаб с классом InventoryWeaponItem
+    public PlayerInventory inventory;
     Transform panelInventory;
     bool isOpen;
 
     void Start()
     {
+        inventoryWeaponItem = Resources.Load<GameObject>("UI/WeaponInventoryItem");
         panelInventory = transform.Find("PanelInventory");
     }
 
@@ -18,6 +21,37 @@ public class InventoryWindow : MonoBehaviour {
         {
             isOpen = !isOpen;
             panelInventory.gameObject.SetActive(isOpen);
+            if (isOpen == true)
+            {
+                Debug.Log(inventory.weapons[0]);
+                RefreshWeaponList();
+            }
+    
+        }
+        
+        
+    }
+    
+    void AddItemInWeaponList(Weapon weapon)
+    {
+        Transform GridItems = transform.Find("PanelInventory/PanelWeaponList/GridWithElements");
+        GameObject weaponItemObject = Instantiate(inventoryWeaponItem, GridItems);
+        InventoryWeaponItem weaponItem = weaponItemObject.GetComponent<InventoryWeaponItem>();
+        weaponItem.SetPropertys(weapon.weaponData.icon, weapon.weaponData.name, weapon.weaponData.description);
+    }
+    void ClearItemsInWeaponList()
+    {
+        Transform GridItems = transform.Find("PanelInventory/PanelWeaponList/GridWithElements");
+        foreach (Transform item in GridItems)
+            Destroy(item.gameObject);
+    }
+
+    void RefreshWeaponList()
+    {
+        ClearItemsInWeaponList();
+        foreach(var weapon in inventory.weapons)
+        {
+            AddItemInWeaponList(weapon);
         }
     }
 }

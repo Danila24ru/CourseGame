@@ -9,6 +9,6 @@ public class MatchInfo : MonoBehaviour {
 
     public void JoinButton()
     {
-        GetComponentInParent<FindGameWindow>().netManager.JoinGame(matchInfoSnapshot);
+        GameObject.Find("NetworkManager").GetComponent<GameNetworkManager>().JoinGame(matchInfoSnapshot);
     }
 }

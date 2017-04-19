@@ -7,6 +7,7 @@ using UnityEngine.Networking.Match;
 
 public class GameNetworkManager : NetworkManager {
 
+    public string PlayerName;
 
 	public void HostGame(string matchName, int matchSize, string matchPassword)
     {
