@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityStandardAssets.ImageEffects;
@@ -6,19 +7,56 @@ using UnityStandardAssets.ImageEffects;
 public class Player : NetworkBehaviour, IDamageble {
 
     [SyncVar]
-    string Nickname = "Nick";
+    public string Nickname = "Nick";
     TextMesh nicknameText;
 
     private const float MAX_HEALTH = 100.0f;
 
     [SyncVar]
     public float health = MAX_HEALTH;
-    public float rateOfRegeneration;
-    public float healthToRegenerate;
+    private float rateOfRegeneration;
+    private float healthToRegenerate;
 
-    public GameObject currentWeapon;
-    public GameObject primaryWeapon;
-    public GameObject secondWeapon;
+    public Weapon currentWeapon;
+    public Weapon primaryWeapon;
+    public Weapon secondWeapon;
+
+    //private Gloves[] rightGlove;
+    //private Gloves leftGlove;
+    public List<Gloves> LeftGlove;
+    public List<Gloves> RightGlove;
+
+    /*public Gloves RightGlove
+    {
+        get
+        {
+            if (rightGlove != null)
+                return rightGlove[0];
+            else
+                return null;
+        }
+        set
+        {
+            if (value.switchHands == Gloves.EHands.right)
+                rightGlove.Add(value);
+        }
+    }
+    public Gloves LeftGlove
+    {
+        get
+        {
+            if (leftGlove != null)
+                return leftGlove[0];
+            else
+                return null;
+        }
+        set
+        {
+            if (value.switchHands == Gloves.EHands.left)
+               leftGlove.Add(value);
+        }
+    }*/
+
 
     VignetteAndChromaticAberration vignette;
 
@@ -28,6 +66,7 @@ public class Player : NetworkBehaviour, IDamageble {
         nicknameText = transform.Find("Nickname").GetComponent<TextMesh>();
         if (nicknameText != null && isLocalPlayer)
         {
+            GameObject.Find("Canvas").GetComponent<PlayerStatWindow>().owner = this;
             CmdSetPlayerName(GameObject.Find("NetworkManager").GetComponent<GameNetworkManager>().PlayerName);
             nicknameText.transform.gameObject.SetActive(false);
         }
@@ -82,4 +121,6 @@ public class Player : NetworkBehaviour, IDamageble {
     {
         Nickname = name;
     }
+
+
 }

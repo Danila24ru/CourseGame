@@ -40,11 +40,11 @@ public class PlayerController : NetworkBehaviour {
     private Transform cameraPivot;
     private bool cameraRL;
 
-    Vector3 cameraForward;
-    Vector3 cameraRight;
-    Vector3 moveDirection;
+    private Vector3 cameraForward;
+    private Vector3 cameraRight;
+    private Vector3 moveDirection;
 
-    Quaternion rotateTo; // rotate player to movement direction
+    private Quaternion rotateTo; // rotate player to movement direction
 
 
     private void Start ()
@@ -72,8 +72,14 @@ public class PlayerController : NetworkBehaviour {
 
         CmdSetIsAiming(Input.GetKey(KeyCode.Mouse1)); // правая кнопка мыши
 
+        if (Input.GetKeyDown(KeyCode.Escape))
+            Cursor.visible = true;
+
         if (Input.GetKeyDown(KeyCode.Alpha4)) 
             ChangeCameraSide();
+
+        if (Input.GetKeyDown(KeyCode.Alpha3))
+            CmdSelectNoneWeapon();
 
         if(Input.GetKey(KeyCode.Mouse0)) //левая кнопка мыши
         {
@@ -94,7 +100,7 @@ public class PlayerController : NetworkBehaviour {
         
         if(Input.GetKeyDown(KeyCode.R))
         {
-            Weapon weapon = GetComponentInChildren<Weapon>();
+            Weapon weapon = GetComponentInChildren<Weapon>(false);
             weapon.CmdReload();
             animator.SetBool("IsReloading", true);
         }
@@ -102,7 +108,16 @@ public class PlayerController : NetworkBehaviour {
         {
             animator.SetBool("IsReloading", false);
         }
-        
+
+        if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetAxisRaw("Mouse ScrollWheel") > 0)
+        {
+            CmdSelectPrimaryWeapon();
+        }
+        if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetAxisRaw("Mouse ScrollWheel") < 0)
+        {
+            CmdSelectSecondWeapon();
+        }
+
         if (isAiming || inAction)
         {
             CmdSetMovementAxis(verticalAxis, horizontalAxis);
@@ -141,18 +156,44 @@ public class PlayerController : NetworkBehaviour {
     }
 
     [Command(channel = 0)]
-    void CmdChangeWeapon(int number)
+    void CmdSelectPrimaryWeapon()
     {
         Player player = GetComponent<Player>();
-        if(number == 1)
+
+        if (player.currentWeapon == player.secondWeapon || player.currentWeapon == null)
         {
+            if(player.currentWeapon == player.secondWeapon)
+            {
+                player.currentWeapon.gameObject.SetActive(false);
+            }
             player.currentWeapon = player.primaryWeapon;
-        }
-        if(number == 2 || number == -1)
+        } 
+
+    }
+    [Command(channel = 0)]
+    void CmdSelectSecondWeapon()
+    {
+        Player player = GetComponent<Player>();
+        if (player.currentWeapon == player.primaryWeapon || player.currentWeapon == null)
         {
+            if (player.currentWeapon == player.primaryWeapon)
+            {
+                player.currentWeapon.gameObject.SetActive(false);
+            }
             player.currentWeapon = player.secondWeapon;
-        }    
-        
+        }
+    }
+
+    [Command(channel = 0)]
+    void CmdSelectNoneWeapon()
+    {
+        Player player = GetComponent<Player>();
+        if (player.currentWeapon == player.primaryWeapon || player.currentWeapon == player.secondWeapon)
+        {
+            player.currentWeapon.gameObject.SetActive(false);
+            
+            player.currentWeapon = null;
+        }
     }
 
     [Command(channel = 0)]

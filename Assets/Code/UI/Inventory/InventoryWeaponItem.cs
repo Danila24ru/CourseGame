@@ -2,12 +2,16 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Networking;
 
 public class InventoryWeaponItem : MonoBehaviour {
 
     private Sprite weaponIcon;
     private Text weaponNameText;
     private Text description;
+
+    public PlayerInventory inventory;
+    public Weapon weapon;
 
     void Awake()
     {
@@ -16,15 +20,18 @@ public class InventoryWeaponItem : MonoBehaviour {
         description = transform.Find("WeaponInfoBackground/WeaponDescription").GetComponent<Text>();
     }
 
-    void EquipButton()
+    public void EquipButton()
     {
-        
+        weapon.Equip(inventory);
     }
-    public void SetPropertys(Sprite weaponIcon, string weaponName, string description)
+
+    //при открытии инвентаря на "I" задаём каждому итему свойства
+    public void SetPropertys(Weapon weapon)
     {
-        transform.Find("WeaponIconBackground/WeaponIcon").GetComponent<Image>().sprite = weaponIcon;
-        weaponNameText.text = weaponName;
-        this.description.text = description;
+        transform.Find("WeaponIconBackground/WeaponIcon").GetComponent<Image>().sprite = weapon.weaponData.icon;
+        weaponNameText.text = weapon.weaponData.name;
+        this.description.text = weapon.weaponData.description;
+        this.weapon = weapon;
     }
 
 }

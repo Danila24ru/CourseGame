@@ -1,82 +1,41 @@
 ﻿using UnityEngine;
 using UnityEngine.Networking;
 using System.Collections;
+using System.Collections.Generic;
 
 public class PlayerInventory : NetworkBehaviour {
 
-    public GameObject currentWeapon, firstWeapon, secondWeapon;
-
     public GameObject weaponHolder;
 
-    private Animator playerAnimator;
+    public Player owner;
 
     private InventoryWindow inventoryWindow;
 
-    public int inventorySize;
-    public GameObject[] grenades;
-    public Weapon[] weapons;
-
-	// Use this for initialization
+    public List<GameObject> items;
+    
 	void Start () {
-        playerAnimator = GetComponent<Animator>();
-        
+
         if (isLocalPlayer)
         {
             inventoryWindow = GameObject.Find("Canvas").GetComponentInChildren<InventoryWindow>();
             inventoryWindow.inventory = this;
-        }
-	}
-	
-	// Update is called once per frame
-	void Update () {
-
-        if (!isLocalPlayer)
-            return;
-
-        weapons = GetComponentsInChildren<Weapon>();
-
-        if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetAxisRaw("Mouse ScrollWheel") > 0)
-        {
-            CmdChangeCurrentWeaponTo(secondWeapon.name);
-        }
-        if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetAxisRaw("Mouse ScrollWheel") < 0)
-        {
-            CmdChangeCurrentWeaponTo(firstWeapon.name);
+            owner = GetComponent<Player>();
         }
     }
 
-    [Command(channel = 0)]
-    void CmdChangeCurrentWeaponTo(string weaponName)
+    void OnTriggerEnter(Collider item)
     {
-        if (currentWeapon)
-            NetworkServer.Destroy(currentWeapon);
-        GameObject weaponOrigin = Resources.Load<GameObject>(weaponName);
-
-        GameObject spawnWeapon = Instantiate(weaponOrigin);
-        spawnWeapon.GetComponent<Weapon>().parentNetId = netId;
-
-        spawnWeapon.transform.SetParent(weaponHolder.transform);
-        spawnWeapon.transform.localPosition = weaponOrigin.transform.position;
-        spawnWeapon.transform.localRotation = weaponOrigin.transform.rotation;
-        
-        currentWeapon = spawnWeapon;
-
-        NetworkServer.Spawn(spawnWeapon);
-        spawnWeapon.GetComponent<Weapon>().RpcSetTransform(weaponOrigin.transform.position, weaponOrigin.transform.rotation);
-
-        playerAnimator.SetInteger("WeaponType", (int)weaponOrigin.GetComponent<Weapon>().weaponAnimType);
-        
-        RpcSpawnOnClient("WeaponType", (int)weaponOrigin.GetComponent<Weapon>().weaponAnimType);
-    }
-
-    void Equip()
-    {
-
+        if(item.transform.GetChild(0).GetComponent<IItem>() != null)
+        {
+            item.transform.GetChild(0).GetComponent<IItem>().Pickup(this);
+            Debug.Log("Вы подняли: " + item.transform.GetChild(0).name);
+        }
     }
     
     [ClientRpc(channel = 1)]
-    void RpcSpawnOnClient(string id, int value)
+    public void RpcSpawnOnClient(string id, int value)
     {
-        playerAnimator.SetInteger(id, value);
+        owner.GetComponent<Animator>().SetInteger(id, value);
     }
+
 }

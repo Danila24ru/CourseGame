@@ -23,13 +23,9 @@ public class InventoryWindow : MonoBehaviour {
             panelInventory.gameObject.SetActive(isOpen);
             if (isOpen == true)
             {
-                Debug.Log(inventory.weapons[0]);
                 RefreshWeaponList();
             }
-    
         }
-        
-        
     }
     
     void AddItemInWeaponList(Weapon weapon)
@@ -37,7 +33,8 @@ public class InventoryWindow : MonoBehaviour {
         Transform GridItems = transform.Find("PanelInventory/PanelWeaponList/GridWithElements");
         GameObject weaponItemObject = Instantiate(inventoryWeaponItem, GridItems);
         InventoryWeaponItem weaponItem = weaponItemObject.GetComponent<InventoryWeaponItem>();
-        weaponItem.SetPropertys(weapon.weaponData.icon, weapon.weaponData.name, weapon.weaponData.description);
+        weaponItem.inventory = inventory;
+        weaponItem.SetPropertys(weapon);
     }
     void ClearItemsInWeaponList()
     {
@@ -49,9 +46,9 @@ public class InventoryWindow : MonoBehaviour {
     void RefreshWeaponList()
     {
         ClearItemsInWeaponList();
-        foreach(var weapon in inventory.weapons)
+        foreach(var weapon in inventory.items)
         {
-            AddItemInWeaponList(weapon);
+            AddItemInWeaponList(weapon.GetComponent<Weapon>());
         }
     }
 }
